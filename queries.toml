@@ -1,0 +1,7 @@
+[[choice]]
+name = "List organisations"
+query = "SELECT * FROM organisation"
+
+[[choice]]
+name = "List organisation subscriptions"
+query = "SELECT * FROM organisation_subscription"
