@@ -3,7 +3,9 @@ package main
 import (
 	"database/sql"
 	"fmt"
+	"io"
 	"os"
+	"strings"
 
 	"github.com/BurntSushi/toml"
 	"github.com/charmbracelet/bubbles/list"
@@ -12,27 +14,6 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	_ "github.com/lib/pq"
 )
-
-var docStyle = lipgloss.NewStyle().Margin(1, 2)
-
-var baseStyle = lipgloss.NewStyle().
-	BorderStyle(lipgloss.NormalBorder()).
-	BorderForeground(lipgloss.Color("240"))
-
-type item struct {
-	title       string
-	description string
-}
-
-func (i item) Titled() string      { return i.title }
-func (i item) Description() string { return i.description }
-func (i item) FilterValue() string { return i.title }
-
-type model struct {
-	showTable bool
-	table     *table.Model
-	list      *list.Model
-}
 
 type Config struct {
 	Host     string `toml:"host"`
@@ -110,105 +91,167 @@ func connectToDb() (*sql.DB, error) {
 	return db, nil
 }
 
-func (m model) Init() tea.Cmd { return nil }
+var baseStyle = lipgloss.NewStyle().
+	BorderStyle(lipgloss.NormalBorder()).
+	BorderForeground(lipgloss.Color("240"))
+
+const listHeight = 14
+
+var (
+	titleStyle        = lipgloss.NewStyle().MarginLeft(2)
+	itemStyle         = lipgloss.NewStyle().PaddingLeft(4)
+	queryStyle        = lipgloss.NewStyle().PaddingLeft(6).Faint(true)
+	selectedItemStyle = lipgloss.NewStyle().PaddingLeft(2).Foreground(lipgloss.Color("170"))
+	paginationStyle   = list.DefaultStyles().PaginationStyle.PaddingLeft(4)
+	helpStyle         = list.DefaultStyles().HelpStyle.PaddingLeft(4).PaddingBottom(1)
+	quitTextStyle     = lipgloss.NewStyle().Margin(1, 0, 2, 4)
+)
+
+type item struct {
+	name  string
+	query string
+}
+
+func (i item) FilterValue() string { return "" }
+
+type itemDelegate struct{}
+
+func (d itemDelegate) Height() int                             { return 1 }
+func (d itemDelegate) Spacing() int                            { return 0 }
+func (d itemDelegate) Update(_ tea.Msg, _ *list.Model) tea.Cmd { return nil }
+func (d itemDelegate) Render(w io.Writer, m list.Model, index int, listItem list.Item) {
+	i, ok := listItem.(item)
+	if !ok {
+		return
+	}
+
+	// Render item name
+	nameStr := fmt.Sprintf("%d. %s", index+1, i.name)
+	nameFn := itemStyle.Render
+	if index == m.Index() {
+		nameFn = func(s ...string) string {
+			return selectedItemStyle.Render("> " + strings.Join(s, " "))
+		}
+	}
+	fmt.Fprint(w, nameFn(nameStr))
+
+	// Render query value below item name
+	queryStr := i.query
+	queryFn := queryStyle.Render // Define your own query style
+	fmt.Fprintln(w)              // Move to the next line
+	fmt.Fprint(w, queryFn(queryStr))
+}
+
+type model struct {
+	table    table.Model
+	list     list.Model
+	choice   string
+	quitting bool
+}
+
+func (m model) Init() tea.Cmd {
+	return nil
+}
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
+	case tea.WindowSizeMsg:
+		m.list.SetWidth(msg.Width)
+		return m, nil
+
 	case tea.KeyMsg:
-		switch msg.String() {
-		case "esc":
-			if m.table.Focused() {
-				m.table.Blur()
-			} else {
-				m.table.Focus()
-			}
+		switch keypress := msg.String(); keypress {
 		case "q", "ctrl+c":
+			m.quitting = true
 			return m, tea.Quit
+
 		case "enter":
-			if m.list != nil {
-				selectedItem := m.list.SelectedItem()
-				if selectedItem != nil {
-					m.showTable = true
+			i, ok := m.list.SelectedItem().(item)
+			if ok {
+				m.choice = string(i.query)
+
+				database, err := connectToDb()
+
+				if err != nil {
+					panic(err)
 				}
+
+				rowData, columnData := executeQuery(database, m.choice)
+
+				var columns []table.Column
+				var rows []table.Row
+
+				for _, row := range rowData {
+					rows = append(rows, row)
+				}
+
+				for _, header := range columnData {
+					columns = append(columns, table.Column{
+						Title: header,
+						Width: len(header) + 5,
+					})
+				}
+
+				t := table.New(
+					table.WithColumns(columns),
+					table.WithRows(rows),
+					table.WithFocused(true),
+					table.WithHeight(10),
+				)
+
+				s := table.DefaultStyles()
+				s.Header = s.Header.
+					BorderStyle(lipgloss.NormalBorder()).
+					BorderForeground(lipgloss.Color("240")).
+					BorderBottom(true).
+					Bold(false)
+				s.Selected = s.Selected.
+					Foreground(lipgloss.Color("229")).
+					Background(lipgloss.Color("57")).
+					Bold(false)
+				t.SetStyles(s)
+
+				m.table = t
 			}
+
 		case "b":
-			m.showTable = false
+			m.choice = ""
 		}
 	}
 
-	if m.showTable {
-		newTableModel, cmd := m.table.Update(msg)
-		m.table = &newTableModel
-		return m, cmd
-	} else {
-		newListModel, cmd := m.list.Update(msg)
-		m.list = &newListModel
-		return m, cmd
-	}
+	var cmd tea.Cmd
+	m.list, _ = m.list.Update(msg)
+	m.table, _ = m.table.Update(msg)
+	return m, cmd
 }
 
 func (m model) View() string {
-	if m.showTable {
-		return baseStyle.Render(m.table.View()) + "\n"
-	} else {
-		return docStyle.Render(m.list.View())
+	if m.choice != "" {
+		return baseStyle.Render(m.table.View())
 	}
+	if m.quitting {
+		return quitTextStyle.Render("Fare thee well.")
+	}
+	return "\n" + m.list.View()
 }
 
 func main() {
 	items := []list.Item{
-		item{title: "List organisations", description: "SELECT * FROM organisation"},
-		item{title: "List organisation subscriptions", description: "SELECT * FROM organisation_subscriptions"},
+		item{"List organisations", "SELECT * FROM organisation"},
+		item{"List organisation subscriptions", "SELECT * FROM organisation_subscription"},
 	}
 
-	l := list.New(items, list.NewDefaultDelegate(), 0, 0)
+	const defaultWidth = 20
 
-	m := model{list: &l}
+	l := list.New(items, itemDelegate{}, defaultWidth, listHeight)
+	l.Title = "What query do you want to run?"
+	l.SetShowStatusBar(false)
+	l.SetFilteringEnabled(false)
+	l.Styles.Title = titleStyle
+	l.Styles.PaginationStyle = paginationStyle
+	l.Styles.HelpStyle = helpStyle
 
-	m.list.Title = "Pick a command to run"
-
-	database, err := connectToDb()
-
-	if err != nil {
-		panic(err)
-	}
-
-	rowData, columnData := executeQuery(database, "SELECT * FROM organisation")
-
-	var columns []table.Column
-	var rows []table.Row
-
-	for _, row := range rowData {
-		rows = append(rows, row)
-	}
-
-	for _, header := range columnData {
-		columns = append(columns, table.Column{
-			Title: header,
-			Width: len(header) + 5,
-		})
-	}
-
-	t := table.New(
-		table.WithColumns(columns),
-		table.WithRows(rows),
-		table.WithFocused(true),
-		table.WithHeight(10),
-	)
-
-	s := table.DefaultStyles()
-	s.Header = s.Header.
-		BorderStyle(lipgloss.NormalBorder()).
-		BorderForeground(lipgloss.Color("240")).
-		BorderBottom(true).
-		Bold(false)
-	s.Selected = s.Selected.
-		Foreground(lipgloss.Color("229")).
-		Background(lipgloss.Color("57")).
-		Bold(false)
-	t.SetStyles(s)
-
-	m = model{false, &t, &l}
+	m := model{list: l}
 
 	if _, err := tea.NewProgram(m).Run(); err != nil {
 		fmt.Println("Error running program:", err)
