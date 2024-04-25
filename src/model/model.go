@@ -2,10 +2,11 @@ package model
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/DillonBarker/d8b/src/db"
+	"github.com/charmbracelet/bubbles/table"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 )
 
 type Choice struct {
@@ -54,31 +55,39 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "ctrl+c", "q":
 			return m, tea.Quit
 		case "up", "k":
-			if m.cursor > 0 {
+			if m.cursor > 0 && len(m.output) == 0 {
 				m.cursor--
 			}
 		case "down", "j":
-			if m.cursor < len(m.choices.Choice)-1 {
+			if m.cursor < len(m.choices.Choice)-1 && len(m.output) == 0 {
 				m.cursor++
 			}
 		case "enter", " ":
-			choice := m.choices.Choice[m.cursor].Name
-			query, ok := m.queries[choice]
-			if !ok {
-				fmt.Printf("Error: Query for %s not found.\n", choice)
-				return m, nil
-			}
+			if len(m.output) == 0 {
+				choice := m.choices.Choice[m.cursor].Name
+				query, ok := m.queries[choice]
+				if !ok {
+					fmt.Printf("Error: Query for %s not found.\n", choice)
+					return m, nil
+				}
 
-			if choice == "Create New Entry" {
-
-			} else {
 				m.output, m.headers = db.ExecuteQuery(database, query)
+			}
+		case "b":
+			if len(m.output) > 0 {
+				// Clear output and headers to return to options
+				m.output = nil
+				m.headers = nil
 			}
 		}
 	}
 
 	return m, nil
 }
+
+var baseStyle = lipgloss.NewStyle().
+	BorderStyle(lipgloss.NormalBorder()).
+	BorderForeground(lipgloss.Color("240"))
 
 func (m model) View() string {
 	s := "What database command to run?\n\n"
@@ -93,44 +102,48 @@ func (m model) View() string {
 	s += "\n"
 
 	if len(m.output) > 0 {
-		colWidths := make([]int, len(m.headers))
+		var columns []table.Column
+		var rows []table.Row
 
-		for i, header := range m.headers {
-			colWidths[i] = len(header)
-		}
+		// Prepare rows
 		for _, row := range m.output {
-			for i, val := range row {
-				if len(val) > colWidths[i] {
-					colWidths[i] = len(val)
-				}
-			}
+			rows = append(rows, row)
 		}
 
-		for i, header := range m.headers {
-			s += fmt.Sprintf("| %-*s ", colWidths[i], header)
+		// Prepare columns
+		for _, header := range m.headers {
+			columns = append(columns, table.Column{
+				Title: header,
+				Width: len(header),
+			})
 		}
-		s += "|\n"
 
-		for i, width := range colWidths {
-			if i == 0 {
-				s += "+"
-			}
-			s += strings.Repeat("-", width+2)
-			if i < len(colWidths)-1 {
-				s += "+"
-			}
-		}
-		s += "+\n"
+		// Create the table
+		t := table.New(
+			table.WithColumns(columns),
+			table.WithRows(rows),
+			table.WithFocused(true),
+			table.WithHeight(7),
+		)
 
-		for _, row := range m.output {
-			for i, val := range row {
-				s += fmt.Sprintf("| %-*s ", colWidths[i], val)
-			}
-			s += "|\n"
-		}
+		// Define styles
+		s := table.DefaultStyles()
+		s.Header = s.Header.
+			BorderStyle(lipgloss.NormalBorder()).
+			BorderForeground(lipgloss.Color("240")).
+			BorderBottom(true).
+			Bold(false)
+		s.Selected = s.Selected.
+			Foreground(lipgloss.Color("229")).
+			Background(lipgloss.Color("57")).
+			Bold(false)
+		t.SetStyles(s)
+
+		// Render the table and apply baseStyle
+		return baseStyle.Render(t.View()) + "\n"
 	}
 
+	// If no data to display, just return the regular view
 	s += "\nPress q to quit.\n"
-
 	return s
 }
