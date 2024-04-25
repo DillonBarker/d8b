@@ -125,7 +125,6 @@ func (d itemDelegate) Render(w io.Writer, m list.Model, index int, listItem list
 		return
 	}
 
-	// Render item name
 	nameStr := fmt.Sprintf("%d. %s", index+1, i.name)
 	nameFn := itemStyle.Render
 	if index == m.Index() {
@@ -135,10 +134,9 @@ func (d itemDelegate) Render(w io.Writer, m list.Model, index int, listItem list
 	}
 	fmt.Fprint(w, nameFn(nameStr))
 
-	// Render query value below item name
 	queryStr := i.query
-	queryFn := queryStyle.Render // Define your own query style
-	fmt.Fprintln(w)              // Move to the next line
+	queryFn := queryStyle.Render
+	fmt.Fprintln(w)
 	fmt.Fprint(w, queryFn(queryStr))
 }
 
@@ -235,10 +233,33 @@ func (m model) View() string {
 	return "\n" + m.list.View()
 }
 
+type Choice struct {
+	Name  string `toml:"name"`
+	Query string `toml:"query"`
+}
+
+type Choices struct {
+	Choices []Choice `toml:"choice"`
+}
+
+func loadQueries() (Choices, error) {
+	var choices Choices
+	if _, err := toml.DecodeFile("queries.toml", &choices); err != nil {
+		return choices, err
+	}
+	return choices, nil
+}
+
 func main() {
-	items := []list.Item{
-		item{"List organisations", "SELECT * FROM organisation"},
-		item{"List organisation subscriptions", "SELECT * FROM organisation_subscription"},
+	choices, err := loadQueries()
+
+	if err != nil {
+		panic(err)
+	}
+
+	var items []list.Item
+	for _, choice := range choices.Choices {
+		items = append(items, item{name: choice.Name, query: choice.Query})
 	}
 
 	const defaultWidth = 20
