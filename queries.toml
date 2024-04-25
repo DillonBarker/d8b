@@ -5,3 +5,7 @@ query = "SELECT * FROM organisation"
 [[choice]]
 name = "List organisation subscriptions"
 query = "SELECT * FROM organisation_subscription"
+
+[[choice]]
+name = "Create New Entry"
+query = ""
