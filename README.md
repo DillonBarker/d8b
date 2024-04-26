@@ -19,9 +19,9 @@ dbname = "postgres"
 
 ## TODO
 
-[ ] - CRUD for queries
-[ ] - Enter on table gives extra information
-[ ] - Proper errors for bad queries
-[ ] - Multiple configs (for multiple databases)
-[ ] - Add tests? + other go project files
-[] - Create executable
+- [ ] CRUD for queries
+- [ ] Enter on table gives extra information
+- [ ] Proper errors for bad queries
+- [ ] Multiple configs (for multiple databases)
+- [ ] Add tests? + other go project files
+- [ ] Create executable
