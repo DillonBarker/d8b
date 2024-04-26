@@ -35,11 +35,14 @@ func main() {
 
 	l := list.New(items, model.ItemDelegate{}, defaultWidth, listHeight)
 	l.Title = "What query do you want to run?"
-	l.SetShowStatusBar(false)
-	l.SetFilteringEnabled(false)
 	l.Styles.Title = titleStyle
 	l.Styles.PaginationStyle = paginationStyle
 	l.Styles.HelpStyle = helpStyle
+	l.AdditionalShortHelpKeys = func() []key.Binding {
+		return []key.Binding{
+			listKeys.AddNewQuery,
+		}
+	}
 	l.AdditionalFullHelpKeys = func() []key.Binding {
 		return []key.Binding{
 			listKeys.ToggleTitleBar,

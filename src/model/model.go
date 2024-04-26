@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/DillonBarker/d8b/src/db"
+	"github.com/DillonBarker/d8b/src/queries"
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/list"
 	"github.com/charmbracelet/bubbles/table"
@@ -81,6 +82,14 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			break
 		}
 		switch {
+		case key.Matches(msg, m.keys.AddNewQuery):
+			choice := queries.Choice{Name: "test", Query: "test"}
+			queries.AddQuery(choice)
+
+			m.list.InsertItem(len(m.list.Items()), Item{Name: choice.Name, Query: choice.Query})
+
+			return m, nil
+
 		case key.Matches(msg, m.keys.ToggleTitleBar):
 			v := !m.list.ShowTitle()
 			m.list.SetShowTitle(v)
@@ -98,6 +107,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.list.SetShowHelp(!m.list.ShowHelp())
 			return m, nil
 		}
+
 		switch keypress := msg.String(); keypress {
 		case "q", "ctrl+c":
 			m.quitting = true
@@ -105,11 +115,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "enter":
 			i, ok := m.list.SelectedItem().(Item)
 
-			if m.table.Focused() {
-				return m, tea.Batch(
-					tea.Printf("Looking at %s!", m.table.SelectedRow()),
-				)
-			} else if ok {
+			if ok {
 				m.choice = string(i.Query)
 
 				rowData, columnData := db.ExecuteQuery(m.choice)
@@ -172,6 +178,7 @@ func (m model) View() string {
 }
 
 type listKeyMap struct {
+	AddNewQuery      key.Binding
 	ToggleTitleBar   key.Binding
 	ToggleStatusBar  key.Binding
 	TogglePagination key.Binding
@@ -180,21 +187,25 @@ type listKeyMap struct {
 
 func NewListKeyMap() *listKeyMap {
 	return &listKeyMap{
+		AddNewQuery: key.NewBinding(
+			key.WithKeys("n"),
+			key.WithHelp("n", "add new query"),
+		),
 		ToggleTitleBar: key.NewBinding(
-			key.WithKeys("T"),
-			key.WithHelp("T", "toggle title"),
+			key.WithKeys("t"),
+			key.WithHelp("t", "toggle title"),
 		),
 		ToggleStatusBar: key.NewBinding(
-			key.WithKeys("S"),
-			key.WithHelp("S", "toggle status"),
+			key.WithKeys("s"),
+			key.WithHelp("s", "toggle status"),
 		),
 		TogglePagination: key.NewBinding(
-			key.WithKeys("P"),
-			key.WithHelp("P", "toggle pagination"),
+			key.WithKeys("p"),
+			key.WithHelp("p", "toggle pagination"),
 		),
 		ToggleHelpMenu: key.NewBinding(
-			key.WithKeys("H"),
-			key.WithHelp("H", "toggle help"),
+			key.WithKeys("h"),
+			key.WithHelp("h", "toggle help"),
 		),
 	}
 }
