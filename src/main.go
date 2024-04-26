@@ -41,6 +41,7 @@ func main() {
 	l.AdditionalShortHelpKeys = func() []key.Binding {
 		return []key.Binding{
 			listKeys.AddNewQuery,
+			listKeys.RemoveQuery,
 		}
 	}
 	l.AdditionalFullHelpKeys = func() []key.Binding {

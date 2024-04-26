@@ -26,12 +26,12 @@ var (
 )
 
 var (
-	focusedStyle        = lipgloss.NewStyle().Foreground(lipgloss.Color("205"))
+	focusedStyle        = lipgloss.NewStyle().Foreground(lipgloss.Color("40"))
 	blurredStyle        = lipgloss.NewStyle().Foreground(lipgloss.Color("240"))
 	cursorStyle         = focusedStyle.Copy()
 	noStyle             = lipgloss.NewStyle()
 	helpStyle           = blurredStyle.Copy()
-	cursorModeHelpStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("244"))
+	cursorModeHelpStyle = blurredStyle.Copy()
 
 	focusedButton = focusedStyle.Copy().Render("[ Submit ]")
 	blurredButton = fmt.Sprintf("[ %s ]", blurredStyle.Render("Submit"))
@@ -231,6 +231,19 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			case "q", "ctrl+c":
 				m.quitting = true
 				return m, tea.Quit
+			case "ctrl+d":
+				item, ok := m.list.SelectedItem().(Item)
+				i := m.list.Index()
+
+				if ok {
+					choice := queries.Choice{Name: item.Name, Query: item.Query}
+					queries.RemoveQuery(choice)
+
+					m.list.RemoveItem(i)
+
+					return m, nil
+				}
+
 			case "enter":
 				i, ok := m.list.SelectedItem().(Item)
 
@@ -343,6 +356,7 @@ func (m model) View() string {
 
 type listKeyMap struct {
 	AddNewQuery      key.Binding
+	RemoveQuery      key.Binding
 	ToggleTitleBar   key.Binding
 	ToggleStatusBar  key.Binding
 	TogglePagination key.Binding
@@ -354,6 +368,10 @@ func NewListKeyMap() *listKeyMap {
 		AddNewQuery: key.NewBinding(
 			key.WithKeys("n"),
 			key.WithHelp("n", "add new query"),
+		),
+		RemoveQuery: key.NewBinding(
+			key.WithKeys("ctrl+d"),
+			key.WithHelp("ctrl+d", "remove query"),
 		),
 		ToggleTitleBar: key.NewBinding(
 			key.WithKeys("t"),
