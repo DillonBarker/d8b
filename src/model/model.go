@@ -7,9 +7,11 @@ import (
 
 	"github.com/DillonBarker/d8b/src/db"
 	"github.com/DillonBarker/d8b/src/queries"
+	"github.com/charmbracelet/bubbles/cursor"
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/list"
 	"github.com/charmbracelet/bubbles/table"
+	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 )
@@ -20,6 +22,18 @@ var (
 	queryStyle        = lipgloss.NewStyle().PaddingLeft(6).Faint(true)
 	selectedItemStyle = lipgloss.NewStyle().PaddingLeft(2).Foreground(lipgloss.Color("40"))
 	quitTextStyle     = lipgloss.NewStyle().Margin(1, 0, 2, 4)
+)
+
+var (
+	focusedStyle        = lipgloss.NewStyle().Foreground(lipgloss.Color("205"))
+	blurredStyle        = lipgloss.NewStyle().Foreground(lipgloss.Color("240"))
+	cursorStyle         = focusedStyle.Copy()
+	noStyle             = lipgloss.NewStyle()
+	helpStyle           = blurredStyle.Copy()
+	cursorModeHelpStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("244"))
+
+	focusedButton = focusedStyle.Copy().Render("[ Submit ]")
+	blurredButton = fmt.Sprintf("[ %s ]", blurredStyle.Render("Submit"))
 )
 
 type Item struct {
@@ -55,12 +69,44 @@ func (d ItemDelegate) Render(w io.Writer, m list.Model, index int, listItem list
 	fmt.Fprint(w, queryFn(queryStr))
 }
 
+func initialModel() model {
+	m := model{
+		inputs: make([]textinput.Model, 2),
+	}
+
+	var t textinput.Model
+	for i := range m.inputs {
+		t = textinput.New()
+		t.Cursor.Style = cursorStyle
+		t.CharLimit = 64
+
+		switch i {
+		case 0:
+			t.Placeholder = "Name"
+			t.Focus()
+			t.PromptStyle = focusedStyle
+			t.TextStyle = focusedStyle
+		case 1:
+			t.Placeholder = "Query"
+			t.CharLimit = 64
+		}
+
+		m.inputs[i] = t
+	}
+
+	return m
+}
+
 type model struct {
-	table    table.Model
-	list     list.Model
-	keys     *listKeyMap
-	choice   string
-	quitting bool
+	table      table.Model
+	list       list.Model
+	keys       *listKeyMap
+	choice     string
+	quitting   bool
+	inputting  bool
+	focusIndex int
+	inputs     []textinput.Model
+	cursorMode cursor.Mode
 }
 
 func Model(l list.Model, listKeys *listKeyMap) model {
@@ -81,93 +127,189 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if m.list.FilterState() == list.Filtering {
 			break
 		}
-		switch {
-		case key.Matches(msg, m.keys.AddNewQuery):
-			choice := queries.Choice{Name: "test", Query: "test"}
-			queries.AddQuery(choice)
+		if m.inputting {
+			switch msg.String() {
+			case "ctrl+q":
+				m.inputting = false
+				return m, nil
+			case "ctrl+c":
+				return m, tea.Quit
 
-			m.list.InsertItem(len(m.list.Items()), Item{Name: choice.Name, Query: choice.Query})
+			case "ctrl+r":
+				m.cursorMode++
+				if m.cursorMode > cursor.CursorHide {
+					m.cursorMode = cursor.CursorBlink
+				}
+				cmds := make([]tea.Cmd, len(m.inputs))
+				for i := range m.inputs {
+					cmds[i] = m.inputs[i].Cursor.SetMode(m.cursorMode)
+				}
+				return m, tea.Batch(cmds...)
 
-			return m, nil
+			case "tab", "shift+tab", "enter", "up", "down":
+				s := msg.String()
 
-		case key.Matches(msg, m.keys.ToggleTitleBar):
-			v := !m.list.ShowTitle()
-			m.list.SetShowTitle(v)
-			return m, nil
+				if s == "enter" && m.focusIndex == len(m.inputs) {
+					choice := queries.Choice{Name: m.inputs[0].Value(), Query: m.inputs[1].Value()}
 
-		case key.Matches(msg, m.keys.ToggleStatusBar):
-			m.list.SetShowStatusBar(!m.list.ShowStatusBar())
-			return m, nil
+					fmt.Printf("choice: %v\n", choice)
 
-		case key.Matches(msg, m.keys.TogglePagination):
-			m.list.SetShowPagination(!m.list.ShowPagination())
-			return m, nil
+					queries.AddQuery(choice)
 
-		case key.Matches(msg, m.keys.ToggleHelpMenu):
-			m.list.SetShowHelp(!m.list.ShowHelp())
-			return m, nil
-		}
+					m.list.InsertItem(len(m.list.Items()), Item{Name: choice.Name, Query: choice.Query})
 
-		switch keypress := msg.String(); keypress {
-		case "q", "ctrl+c":
-			m.quitting = true
-			return m, tea.Quit
-		case "enter":
-			i, ok := m.list.SelectedItem().(Item)
-
-			if ok {
-				m.choice = string(i.Query)
-
-				rowData, columnData := db.ExecuteQuery(m.choice)
-
-				var columns []table.Column
-				var rows []table.Row
-
-				for _, row := range rowData {
-					rows = append(rows, row)
+					m.inputting = false
+					return m, nil
 				}
 
-				for _, header := range columnData {
-					columns = append(columns, table.Column{
-						Title: header,
-						Width: len(header) + 5,
-					})
+				if s == "up" || s == "shift+tab" {
+					m.focusIndex--
+				} else {
+					m.focusIndex++
 				}
 
-				t := table.New(
-					table.WithColumns(columns),
-					table.WithRows(rows),
-					table.WithFocused(true),
-					table.WithHeight(10),
-				)
+				if m.focusIndex > len(m.inputs) {
+					m.focusIndex = 0
+				} else if m.focusIndex < 0 {
+					m.focusIndex = len(m.inputs)
+				}
 
-				s := table.DefaultStyles()
-				s.Header = s.Header.
-					BorderStyle(lipgloss.NormalBorder()).
-					BorderForeground(lipgloss.Color("240")).
-					BorderBottom(true).
-					Bold(false)
-				s.Selected = s.Selected.
-					Foreground(lipgloss.Color("229")).
-					Background(lipgloss.Color("57")).
-					Bold(true)
-				t.SetStyles(s)
+				cmds := make([]tea.Cmd, len(m.inputs))
+				for i := 0; i <= len(m.inputs)-1; i++ {
+					if i == m.focusIndex {
+						cmds[i] = m.inputs[i].Focus()
+						m.inputs[i].PromptStyle = focusedStyle
+						m.inputs[i].TextStyle = focusedStyle
+						continue
+					}
 
-				m.table = t
+					m.inputs[i].Blur()
+					m.inputs[i].PromptStyle = noStyle
+					m.inputs[i].TextStyle = noStyle
+				}
+
+				return m, tea.Batch(cmds...)
+			}
+		} else {
+			switch {
+			case key.Matches(msg, m.keys.AddNewQuery):
+				m.inputs = initialModel().inputs
+				m.inputting = true
+
+				return m, nil
+
+			case key.Matches(msg, m.keys.ToggleTitleBar):
+				v := !m.list.ShowTitle()
+				m.list.SetShowTitle(v)
+				return m, nil
+
+			case key.Matches(msg, m.keys.ToggleStatusBar):
+				m.list.SetShowStatusBar(!m.list.ShowStatusBar())
+				return m, nil
+
+			case key.Matches(msg, m.keys.TogglePagination):
+				m.list.SetShowPagination(!m.list.ShowPagination())
+				return m, nil
+
+			case key.Matches(msg, m.keys.ToggleHelpMenu):
+				m.list.SetShowHelp(!m.list.ShowHelp())
+				return m, nil
 			}
 
-		case "b":
-			m.choice = ""
+			switch keypress := msg.String(); keypress {
+			case "q", "ctrl+c":
+				m.quitting = true
+				return m, tea.Quit
+			case "enter":
+				i, ok := m.list.SelectedItem().(Item)
+
+				if ok {
+					m.choice = string(i.Query)
+
+					rowData, columnData := db.ExecuteQuery(m.choice)
+
+					var columns []table.Column
+					var rows []table.Row
+
+					for _, row := range rowData {
+						rows = append(rows, row)
+					}
+
+					for _, header := range columnData {
+						columns = append(columns, table.Column{
+							Title: header,
+							Width: len(header) + 5,
+						})
+					}
+
+					t := table.New(
+						table.WithColumns(columns),
+						table.WithRows(rows),
+						table.WithFocused(true),
+						table.WithHeight(10),
+					)
+
+					s := table.DefaultStyles()
+					s.Header = s.Header.
+						BorderStyle(lipgloss.NormalBorder()).
+						BorderForeground(lipgloss.Color("240")).
+						BorderBottom(true).
+						Bold(false)
+					s.Selected = s.Selected.
+						Foreground(lipgloss.Color("229")).
+						Background(lipgloss.Color("57")).
+						Bold(true)
+					t.SetStyles(s)
+
+					m.table = t
+				}
+
+			case "b":
+				m.choice = ""
+			}
 		}
 	}
 
-	var cmd tea.Cmd
+	cmd := m.updateInputs(msg)
 	m.list, _ = m.list.Update(msg)
 	m.table, _ = m.table.Update(msg)
 	return m, cmd
 }
 
+func (m *model) updateInputs(msg tea.Msg) tea.Cmd {
+	cmds := make([]tea.Cmd, len(m.inputs))
+
+	for i := range m.inputs {
+		m.inputs[i], cmds[i] = m.inputs[i].Update(msg)
+	}
+
+	return tea.Batch(cmds...)
+}
+
 func (m model) View() string {
+	if m.inputting {
+		var b strings.Builder
+
+		for i := range m.inputs {
+			b.WriteString(m.inputs[i].View())
+			if i < len(m.inputs)-1 {
+				b.WriteRune('\n')
+			}
+		}
+
+		button := &blurredButton
+		if m.focusIndex == len(m.inputs) {
+			button = &focusedButton
+		}
+		fmt.Fprintf(&b, "\n\n%s\n\n", *button)
+
+		b.WriteString(helpStyle.Render("cursor mode is "))
+		b.WriteString(cursorModeHelpStyle.Render(m.cursorMode.String()))
+		b.WriteString(helpStyle.Render(" (ctrl+r to change style)"))
+		b.WriteString(helpStyle.Render(" (ctrl+q to go back)"))
+
+		return b.String()
+	}
 	if m.choice != "" {
 		return baseStyle.Render(m.table.View())
 	}
