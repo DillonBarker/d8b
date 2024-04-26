@@ -22,6 +22,7 @@ var (
 	queryStyle        = lipgloss.NewStyle().PaddingLeft(6).Faint(true)
 	selectedItemStyle = lipgloss.NewStyle().PaddingLeft(2).Foreground(lipgloss.Color("40"))
 	quitTextStyle     = lipgloss.NewStyle().Margin(1, 0, 2, 4)
+	errorStyle        = lipgloss.NewStyle().BorderStyle(lipgloss.NormalBorder()).BorderForeground(lipgloss.Color("160"))
 )
 
 var (
@@ -107,6 +108,7 @@ type model struct {
 	focusIndex int
 	inputs     []textinput.Model
 	cursorMode cursor.Mode
+	error      error
 }
 
 func Model(l list.Model, listKeys *listKeyMap) model {
@@ -127,11 +129,22 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if m.list.FilterState() == list.Filtering {
 			break
 		}
+		if m.error != nil {
+			switch msg.String() {
+			case "q", "b":
+				m.error = nil
+				return m, nil
+			case "ctrl+c":
+				m.quitting = true
+				return m, tea.Quit
+			}
+		}
 		if m.inputting {
 			switch msg.String() {
 			case "ctrl+q":
 				m.inputting = false
 				return m, nil
+
 			case "ctrl+c":
 				return m, tea.Quit
 
@@ -226,7 +239,12 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				if ok {
 					m.choice = string(i.Query)
 
-					rowData, columnData := db.ExecuteQuery(m.choice)
+					rowData, columnData, err := db.ExecuteQuery(m.choice)
+
+					if err != nil {
+						m.choice = ""
+						m.error = err
+					}
 
 					var columns []table.Column
 					var rows []table.Row
@@ -287,6 +305,12 @@ func (m *model) updateInputs(msg tea.Msg) tea.Cmd {
 }
 
 func (m model) View() string {
+	if m.error != nil {
+		s := errorStyle.Render("Error: ", m.error.Error())
+		s += helpStyle.Render("\n")
+		s += helpStyle.Render("(q or b to go back)")
+		return s
+	}
 	if m.inputting {
 		var b strings.Builder
 

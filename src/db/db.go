@@ -24,7 +24,7 @@ func loadConfig() (Config, error) {
 	return config, nil
 }
 
-func ExecuteQuery(query string) ([][]string, []string) {
+func ExecuteQuery(query string) ([][]string, []string, error) {
 	db, err := connectToDb()
 
 	if err != nil {
@@ -35,7 +35,8 @@ func ExecuteQuery(query string) ([][]string, []string) {
 
 	rows, err := db.Query(query)
 	if err != nil {
-		panic(err)
+		// this is breaking
+		return nil, nil, err
 	}
 	defer rows.Close()
 
@@ -70,7 +71,7 @@ func ExecuteQuery(query string) ([][]string, []string) {
 		result = append(result, row)
 	}
 
-	return result, columns
+	return result, columns, nil
 }
 
 func connectToDb() (*sql.DB, error) {
