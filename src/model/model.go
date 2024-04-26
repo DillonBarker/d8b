@@ -165,8 +165,6 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				if s == "enter" && m.focusIndex == len(m.inputs) {
 					choice := queries.Choice{Name: m.inputs[0].Value(), Query: m.inputs[1].Value()}
 
-					fmt.Printf("choice: %v\n", choice)
-
 					queries.AddQuery(choice)
 
 					m.list.InsertItem(len(m.list.Items()), Item{Name: choice.Name, Query: choice.Query})
