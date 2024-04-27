@@ -98,6 +98,34 @@ func initialModel() model {
 	return m
 }
 
+func initialModelWithPlaceholder(name string, query string) model {
+	m := model{
+		inputs: make([]textinput.Model, 2),
+	}
+
+	var t textinput.Model
+	for i := range m.inputs {
+		t = textinput.New()
+		t.Cursor.Style = cursorStyle
+		t.CharLimit = 64
+
+		switch i {
+		case 0:
+			t.Placeholder = name
+			t.Focus()
+			t.PromptStyle = focusedStyle
+			t.TextStyle = focusedStyle
+		case 1:
+			t.Placeholder = query
+			t.CharLimit = 64
+		}
+
+		m.inputs[i] = t
+	}
+
+	return m
+}
+
 type model struct {
 	table      table.Model
 	list       list.Model
@@ -105,6 +133,7 @@ type model struct {
 	choice     string
 	quitting   bool
 	inputting  bool
+	editting   bool
 	focusIndex int
 	inputs     []textinput.Model
 	cursorMode cursor.Mode
@@ -163,11 +192,24 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				s := msg.String()
 
 				if s == "enter" && m.focusIndex == len(m.inputs) {
-					choice := queries.Choice{Name: m.inputs[0].Value(), Query: m.inputs[1].Value()}
+					if m.editting {
+						i := m.list.Index()
 
-					queries.AddQuery(choice)
+						oldChoice := queries.Choice{Name: m.inputs[0].Placeholder, Query: m.inputs[1].Placeholder}
+						choice := queries.Choice{Name: m.inputs[0].Value(), Query: m.inputs[1].Value()}
 
-					m.list.InsertItem(len(m.list.Items()), Item{Name: choice.Name, Query: choice.Query})
+						queries.RemoveQuery(oldChoice)
+						queries.AddQuery(choice)
+
+						m.list.RemoveItem(i)
+						m.list.InsertItem(len(m.list.Items()), Item{Name: choice.Name, Query: choice.Query})
+					} else {
+						choice := queries.Choice{Name: m.inputs[0].Value(), Query: m.inputs[1].Value()}
+
+						queries.AddQuery(choice)
+
+						m.list.InsertItem(len(m.list.Items()), Item{Name: choice.Name, Query: choice.Query})
+					}
 
 					m.inputting = false
 					return m, nil
@@ -231,6 +273,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			case "q", "ctrl+c":
 				m.quitting = true
 				return m, tea.Quit
+
 			case "ctrl+d":
 				item, ok := m.list.SelectedItem().(Item)
 				i := m.list.Index()
@@ -240,6 +283,17 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					queries.RemoveQuery(choice)
 
 					m.list.RemoveItem(i)
+
+					return m, nil
+				}
+
+			case "e":
+				item, ok := m.list.SelectedItem().(Item)
+
+				if ok {
+					m.inputs = initialModelWithPlaceholder(item.Name, item.Query).inputs
+					m.editting = true
+					m.inputting = true
 
 					return m, nil
 				}
@@ -356,6 +410,7 @@ func (m model) View() string {
 
 type listKeyMap struct {
 	AddNewQuery      key.Binding
+	EditQuery        key.Binding
 	RemoveQuery      key.Binding
 	ToggleTitleBar   key.Binding
 	ToggleStatusBar  key.Binding
@@ -368,6 +423,10 @@ func NewListKeyMap() *listKeyMap {
 		AddNewQuery: key.NewBinding(
 			key.WithKeys("n"),
 			key.WithHelp("n", "add new query"),
+		),
+		EditQuery: key.NewBinding(
+			key.WithKeys("e"),
+			key.WithHelp("e", "edit query"),
 		),
 		RemoveQuery: key.NewBinding(
 			key.WithKeys("ctrl+d"),
