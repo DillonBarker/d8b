@@ -299,55 +299,59 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 
 			case "enter":
-				i, ok := m.list.SelectedItem().(Item)
+				if !m.table.Focused() {
 
-				if ok {
-					m.choice = string(i.Query)
+					i, ok := m.list.SelectedItem().(Item)
 
-					rowData, columnData, err := db.ExecuteQuery(m.choice)
+					if ok {
+						m.choice = string(i.Query)
 
-					if err != nil {
-						m.choice = ""
-						m.error = err
+						rowData, columnData, err := db.ExecuteQuery(m.choice)
+
+						if err != nil {
+							m.choice = ""
+							m.error = err
+						}
+
+						var columns []table.Column
+						var rows []table.Row
+
+						for _, row := range rowData {
+							rows = append(rows, row)
+						}
+
+						for _, header := range columnData {
+							columns = append(columns, table.Column{
+								Title: header,
+								Width: len(header) + 5,
+							})
+						}
+
+						t := table.New(
+							table.WithColumns(columns),
+							table.WithRows(rows),
+							table.WithFocused(true),
+							table.WithHeight(10),
+						)
+
+						s := table.DefaultStyles()
+						s.Header = s.Header.
+							BorderStyle(lipgloss.NormalBorder()).
+							BorderForeground(lipgloss.Color("240")).
+							BorderBottom(true).
+							Bold(false)
+						s.Selected = s.Selected.
+							Foreground(lipgloss.Color("240")).
+							Background(lipgloss.Color("40")).
+							Bold(true)
+						t.SetStyles(s)
+
+						m.table = t
 					}
-
-					var columns []table.Column
-					var rows []table.Row
-
-					for _, row := range rowData {
-						rows = append(rows, row)
-					}
-
-					for _, header := range columnData {
-						columns = append(columns, table.Column{
-							Title: header,
-							Width: len(header) + 5,
-						})
-					}
-
-					t := table.New(
-						table.WithColumns(columns),
-						table.WithRows(rows),
-						table.WithFocused(true),
-						table.WithHeight(10),
-					)
-
-					s := table.DefaultStyles()
-					s.Header = s.Header.
-						BorderStyle(lipgloss.NormalBorder()).
-						BorderForeground(lipgloss.Color("240")).
-						BorderBottom(true).
-						Bold(false)
-					s.Selected = s.Selected.
-						Foreground(lipgloss.Color("229")).
-						Background(lipgloss.Color("57")).
-						Bold(true)
-					t.SetStyles(s)
-
-					m.table = t
 				}
 
 			case "b":
+				m.table.Blur()
 				m.choice = ""
 			}
 		}
@@ -400,7 +404,9 @@ func (m model) View() string {
 		return b.String()
 	}
 	if m.choice != "" {
-		return baseStyle.Render(m.table.View())
+		s := helpStyle.Render("\n(b to go back)")
+
+		return baseStyle.Render(m.table.View(), s)
 	}
 	if m.quitting {
 		return quitTextStyle.Render("Fare thee well.")
