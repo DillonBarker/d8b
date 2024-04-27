@@ -32,10 +32,11 @@ query = "SELECT * FROM dillon.permissions"
 
 ## TODO
 
-- [ ] Simplify existing code and split into packages, maybe seperate update, view, render if possible.
-- [ ] Create new queries, edit queries and delete queries
-- [ ] Enter on table gives extra information
+- [x] Simplify existing code and split into packages
+- [x] Create new queries, edit queries and delete queries
+- [ ] Display table information better when its a large table
+- [ ] Edit tables
 - [ ] Multiple configs (for multiple databases)
-- [ ] Proper errors for bad queries
+- [x] Proper errors for bad queries
 - [ ] Create executable
 - [ ] Add tests? + other go project files

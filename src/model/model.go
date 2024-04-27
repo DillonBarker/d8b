@@ -7,7 +7,6 @@ import (
 
 	"github.com/DillonBarker/d8b/src/db"
 	"github.com/DillonBarker/d8b/src/queries"
-	"github.com/charmbracelet/bubbles/cursor"
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/list"
 	"github.com/charmbracelet/bubbles/table"
@@ -26,12 +25,10 @@ var (
 )
 
 var (
-	focusedStyle        = lipgloss.NewStyle().Foreground(lipgloss.Color("40"))
-	blurredStyle        = lipgloss.NewStyle().Foreground(lipgloss.Color("240"))
-	cursorStyle         = focusedStyle.Copy()
-	noStyle             = lipgloss.NewStyle()
-	helpStyle           = blurredStyle.Copy()
-	cursorModeHelpStyle = blurredStyle.Copy()
+	focusedStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("40"))
+	blurredStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("240"))
+	noStyle      = lipgloss.NewStyle()
+	helpStyle    = blurredStyle.Copy()
 
 	focusedButton = focusedStyle.Copy().Render("[ Submit ]")
 	blurredButton = fmt.Sprintf("[ %s ]", blurredStyle.Render("Submit"))
@@ -78,7 +75,6 @@ func initialModel() model {
 	var t textinput.Model
 	for i := range m.inputs {
 		t = textinput.New()
-		t.Cursor.Style = cursorStyle
 		t.CharLimit = 64
 
 		switch i {
@@ -99,14 +95,11 @@ func initialModel() model {
 }
 
 func initialModelWithPlaceholder(name string, query string) model {
-	m := model{
-		inputs: make([]textinput.Model, 2),
-	}
+	m := model{inputs: make([]textinput.Model, 2)}
 
 	var t textinput.Model
 	for i := range m.inputs {
 		t = textinput.New()
-		t.Cursor.Style = cursorStyle
 		t.CharLimit = 64
 
 		switch i {
@@ -136,7 +129,6 @@ type model struct {
 	editting   bool
 	focusIndex int
 	inputs     []textinput.Model
-	cursorMode cursor.Mode
 	error      error
 }
 
@@ -170,23 +162,12 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		if m.inputting {
 			switch msg.String() {
-			case "ctrl+q":
+			case "ctrl+q", "ctrl+b":
 				m.inputting = false
 				return m, nil
 
 			case "ctrl+c":
 				return m, tea.Quit
-
-			case "ctrl+r":
-				m.cursorMode++
-				if m.cursorMode > cursor.CursorHide {
-					m.cursorMode = cursor.CursorBlink
-				}
-				cmds := make([]tea.Cmd, len(m.inputs))
-				for i := range m.inputs {
-					cmds[i] = m.inputs[i].Cursor.SetMode(m.cursorMode)
-				}
-				return m, tea.Batch(cmds...)
 
 			case "tab", "shift+tab", "enter", "up", "down":
 				s := msg.String()
@@ -396,10 +377,7 @@ func (m model) View() string {
 		}
 		fmt.Fprintf(&b, "\n\n%s\n\n", *button)
 
-		b.WriteString(helpStyle.Render("cursor mode is "))
-		b.WriteString(cursorModeHelpStyle.Render(m.cursorMode.String()))
-		b.WriteString(helpStyle.Render(" (ctrl+r to change style)"))
-		b.WriteString(helpStyle.Render(" (ctrl+q to go back)"))
+		b.WriteString(helpStyle.Render(" (ctrl+q or ctrl+b to go back)"))
 
 		return b.String()
 	}
@@ -409,7 +387,7 @@ func (m model) View() string {
 		return baseStyle.Render(m.table.View(), s)
 	}
 	if m.quitting {
-		return quitTextStyle.Render("Fare thee well.")
+		return quitTextStyle.Render("Thanks for using d8b.")
 	}
 	return "\n" + m.list.View()
 }

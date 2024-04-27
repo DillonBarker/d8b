@@ -18,9 +18,11 @@ type Config struct {
 
 func loadConfig() (Config, error) {
 	var config Config
+
 	if _, err := toml.DecodeFile("config.toml", &config); err != nil {
 		return config, err
 	}
+
 	return config, nil
 }
 
@@ -28,21 +30,23 @@ func ExecuteQuery(query string) ([][]string, []string, error) {
 	db, err := connectToDb()
 
 	if err != nil {
-		panic(err)
+		return nil, nil, err
 	}
 
 	var result [][]string
 
 	rows, err := db.Query(query)
+
 	if err != nil {
-		// this is breaking
 		return nil, nil, err
 	}
+
 	defer rows.Close()
 
 	columns, err := rows.Columns()
+
 	if err != nil {
-		panic(err)
+		return nil, nil, err
 	}
 
 	values := make([]interface{}, len(columns))
@@ -53,8 +57,9 @@ func ExecuteQuery(query string) ([][]string, []string, error) {
 
 	for rows.Next() {
 		err := rows.Scan(valuePointers...)
+
 		if err != nil {
-			panic(err)
+			return nil, nil, err
 		}
 
 		var row []string
@@ -78,15 +83,17 @@ func connectToDb() (*sql.DB, error) {
 	config, err := loadConfig()
 
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
 	psqlconn := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable",
 		config.Host, config.Port, config.User, config.Password, config.DBName)
 
 	db, err := sql.Open("postgres", psqlconn)
+
 	if err != nil {
 		return nil, err
 	}
+
 	return db, nil
 }
