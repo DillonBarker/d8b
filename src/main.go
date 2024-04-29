@@ -27,10 +27,10 @@ func main() {
 
 	var (
 		defaultWidth    = 20
-		listHeight      = 14
+		listHeight      = 20
 		titleStyle      = lipgloss.NewStyle().MarginLeft(2)
 		paginationStyle = list.DefaultStyles().PaginationStyle.PaddingLeft(4)
-		helpStyle       = list.DefaultStyles().HelpStyle.PaddingLeft(4).PaddingBottom(1)
+		helpStyle       = list.DefaultStyles().HelpStyle.Width(60)
 	)
 
 	l := list.New(items, model.ItemDelegate{}, defaultWidth, listHeight)
@@ -58,7 +58,7 @@ func main() {
 
 	m := model.Model(l, listKeys)
 
-	if _, err := tea.NewProgram(m).Run(); err != nil {
+	if _, err := tea.NewProgram(m, tea.WithAltScreen()).Run(); err != nil {
 		fmt.Println("Error running program:", err)
 		os.Exit(1)
 	}

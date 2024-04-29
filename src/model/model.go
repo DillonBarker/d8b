@@ -316,6 +316,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 						)
 
 						s := table.DefaultStyles()
+						s.Header.AlignHorizontal(lipgloss.Left)
+						s.Header.AlignVertical(lipgloss.Left)
 						s.Header = s.Header.
 							BorderStyle(lipgloss.NormalBorder()).
 							BorderForeground(lipgloss.Color("240")).
