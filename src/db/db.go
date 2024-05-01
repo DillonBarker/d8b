@@ -8,7 +8,7 @@ import (
 	_ "github.com/lib/pq"
 )
 
-type Config struct {
+type config struct {
 	Host     string `toml:"host"`
 	Port     int    `toml:"port"`
 	User     string `toml:"user"`
@@ -16,8 +16,8 @@ type Config struct {
 	DBName   string `toml:"dbname"`
 }
 
-func loadConfig() (Config, error) {
-	var config Config
+func loadConfig() (config, error) {
+	var config config
 
 	if _, err := toml.DecodeFile("config.toml", &config); err != nil {
 		return config, err
