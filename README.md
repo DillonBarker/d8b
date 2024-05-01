@@ -2,7 +2,7 @@
 
 d8b is a TUI built to query and manipulate postgres databases. Built using the [tview](https://github.com/rivo/tview/tree/master) framework.
 
-The aim is to store popular/saved queries and provide these as fast options. As well as running new queries and displaying that data. I currently use `psql` alot and I am building this to make that process better/faster/happier!
+The aim is to display database data in a similar way to my favourite kubernetes TUI k9s. I currently use `psql` alot and I am building this to make that process better/faster/happier, and to practice go.
 
 ## Configuration
 
