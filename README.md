@@ -1,8 +1,8 @@
 # d8b
 
-d8b is a TUI built to query and manipulate postgres databases. Built using the bubbletea framework.
+d8b is a TUI built to query and manipulate postgres databases. Built using the [tview](https://github.com/rivo/tview/tree/master) framework.
 
-The aim is to store popular/saved queries and provide these as fast options. As well as running new queries and displaying that data. I currently use `psql` alot and I am building this to make that process better/faster/happier!
+The aim is to display database data in a similar way to my favourite kubernetes TUI k9s. I currently use `psql` alot and I am building this to make that process better/faster/happier, and to practice go.
 
 ## Configuration
 
@@ -16,27 +16,16 @@ password = "someSecureAsPassword"
 dbname = "postgres"
 ```
 
-## Queries
+## Run
 
-- Use the add **new query** functionality or, create a `queries.toml` file in the root directory, as follows:
-
-```toml
-[[choice]]
-name = "List users"
-query = "SELECT * FROM user"
-
-[[choice]]
-name = "List user permissions"
-query = "SELECT * FROM dillon.permissions"
-```
+- move executable `d8b` to `/usr/local/bin`, and give permissions.
+- use `d8b` from anywhere!
 
 ## TODO
 
-- [x] Simplify existing code and split into packages
-- [x] Create new queries, edit queries and delete queries
-- [ ] Display table information better when its a large table
+- [x] Create executable
+- [ ] Deal with tenanted tables
 - [ ] Edit tables
 - [ ] Multiple configs (for multiple databases)
-- [x] Proper errors for bad queries
-- [ ] Create executable
+- [ ] Proper errors for bad queries
 - [ ] Add tests? + other go project files

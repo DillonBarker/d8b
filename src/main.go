@@ -1,65 +1,71 @@
 package main
 
 import (
-	"fmt"
-	"os"
-
-	"github.com/DillonBarker/d8b/src/model"
-	"github.com/DillonBarker/d8b/src/queries"
-	"github.com/charmbracelet/bubbles/key"
-	"github.com/charmbracelet/bubbles/list"
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
+	"github.com/DillonBarker/d8b/src/table"
+	"github.com/gdamore/tcell/v2"
+	"github.com/rivo/tview"
 )
 
 func main() {
-	choices, err := queries.LoadQueries()
-	listKeys := model.NewListKeyMap()
+	newPrimitive := func(text string) tview.Primitive {
+		return tview.NewTextView().
+			SetText(text)
+	}
 
-	if err != nil {
+	app := tview.NewApplication()
+
+	schemaList := table.GetSchemas()
+	tableList := tview.NewList()
+
+	frame := tview.NewFrame(schemaList)
+
+	var inTables bool
+	var inTable bool
+
+	schemaList.SetSelectedFunc(func(index int, schemaName, secondaryText string, shortcut rune) {
+		tableList = table.GetTables(schemaName)
+
+		frame.Clear()
+		inTables = true
+		inTable = false
+		frame.SetPrimitive(tableList)
+
+		tableList.SetSelectedFunc(func(index int, tableName, secondaryText string, shortcut rune) {
+			table := table.GetTable(schemaName, tableName)
+
+			frame.Clear()
+			inTables = false
+			inTable = true
+			frame.SetPrimitive(table)
+		})
+	})
+
+	app.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		switch event.Key() {
+		case tcell.KeyEscape:
+			if inTables {
+				frame.Clear()
+				inTables = false
+				inTable = false
+				frame.SetPrimitive(schemaList)
+			}
+			if inTable {
+				frame.Clear()
+				inTables = true
+				frame.SetPrimitive(tableList)
+			}
+		}
+		return event
+	})
+
+	grid := tview.NewGrid().
+		SetRows(1, 0, 1).
+		SetColumns(0, 1, 0).
+		AddItem(newPrimitive("Header"), 0, 0, 1, 3, 0, 0, false).
+		AddItem(frame, 1, 0, 1, 3, 0, 0, true).
+		AddItem(newPrimitive("Footer"), 2, 0, 1, 3, 0, 0, false)
+
+	if err := app.SetRoot(grid, true).SetFocus(schemaList).Run(); err != nil {
 		panic(err)
-	}
-
-	var items []list.Item
-	for _, choice := range choices.Choices {
-		items = append(items, model.Item{Name: choice.Name, Query: choice.Query})
-	}
-
-	var (
-		defaultWidth    = 20
-		listHeight      = 20
-		titleStyle      = lipgloss.NewStyle().MarginLeft(2)
-		paginationStyle = list.DefaultStyles().PaginationStyle.PaddingLeft(4)
-		helpStyle       = list.DefaultStyles().HelpStyle.Width(60)
-	)
-
-	l := list.New(items, model.ItemDelegate{}, defaultWidth, listHeight)
-	l.Title = "What query do you want to run?"
-	l.Styles.Title = titleStyle
-	l.Styles.PaginationStyle = paginationStyle
-	l.Styles.HelpStyle = helpStyle
-	l.AdditionalShortHelpKeys = func() []key.Binding {
-		return []key.Binding{
-			listKeys.AddNewQuery,
-			listKeys.EditQuery,
-			listKeys.RemoveQuery,
-		}
-	}
-	l.AdditionalFullHelpKeys = func() []key.Binding {
-		return []key.Binding{
-			listKeys.ToggleTitleBar,
-			listKeys.ToggleStatusBar,
-			listKeys.TogglePagination,
-			listKeys.ToggleHelpMenu,
-		}
-	}
-	l.SetShowFilter(true)
-	l.SetFilteringEnabled(true)
-
-	m := model.Model(l, listKeys)
-
-	if _, err := tea.NewProgram(m, tea.WithAltScreen()).Run(); err != nil {
-		fmt.Println("Error running program:", err)
-		os.Exit(1)
 	}
 }
