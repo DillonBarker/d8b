@@ -16,11 +16,16 @@ password = "someSecureAsPassword"
 dbname = "postgres"
 ```
 
+## Run
+
+- move executable `d8b` to `/usr/local/bin`, and give permissions.
+- use `d8b` from anywhere!
+
 ## TODO
 
+- [x] Create executable
 - [ ] Deal with tenanted tables
 - [ ] Edit tables
 - [ ] Multiple configs (for multiple databases)
 - [ ] Proper errors for bad queries
-- [ ] Create executable
 - [ ] Add tests? + other go project files
