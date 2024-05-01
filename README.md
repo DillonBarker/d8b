@@ -18,7 +18,7 @@ dbname = "postgres"
 
 ## Run
 
-- move executable `d8b` to `/usr/local/bin`, and give permissions.
+- Run the `Makefile`, which will add d8b to your GOPATH
 - use `d8b` from anywhere!
 
 ## TODO

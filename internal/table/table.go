@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/DillonBarker/d8b/src/db"
+	"github.com/DillonBarker/d8b/internal/db"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 )

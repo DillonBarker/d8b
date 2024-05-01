@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/DillonBarker/d8b/src/table"
+	"github.com/DillonBarker/d8b/internal/table"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 )
