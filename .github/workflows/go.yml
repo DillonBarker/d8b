@@ -24,5 +24,8 @@ jobs:
     - name: Build
       run: go build -o d8b src/main.go
 
+    - name: Move executable to source
+      run: cp d8b ./
+
     - name: Test
       run: go test src/main.go
