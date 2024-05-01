@@ -14,25 +14,44 @@ func main() {
 
 	app := tview.NewApplication()
 
-	tableList := table.GetTables()
+	schemaList := table.GetSchemas()
+	tableList := tview.NewList()
 
-	frame := tview.NewFrame(tableList)
+	frame := tview.NewFrame(schemaList)
 
+	var inTables bool
 	var inTable bool
 
-	tableList.SetSelectedFunc(func(index int, tableName, secondaryText string, shortcut rune) {
-		table := table.GetTable(tableName)
+	schemaList.SetSelectedFunc(func(index int, schemaName, secondaryText string, shortcut rune) {
+		tableList = table.GetTables(schemaName)
 
 		frame.Clear()
-		inTable = true
-		frame.SetPrimitive(table)
+		inTables = true
+		inTable = false
+		frame.SetPrimitive(tableList)
+
+		tableList.SetSelectedFunc(func(index int, tableName, secondaryText string, shortcut rune) {
+			table := table.GetTable(schemaName, tableName)
+
+			frame.Clear()
+			inTables = false
+			inTable = true
+			frame.SetPrimitive(table)
+		})
 	})
 
 	app.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 		switch event.Key() {
 		case tcell.KeyEscape:
+			if inTables {
+				frame.Clear()
+				inTables = false
+				inTable = false
+				frame.SetPrimitive(schemaList)
+			}
 			if inTable {
 				frame.Clear()
+				inTables = true
 				frame.SetPrimitive(tableList)
 			}
 		}
@@ -46,7 +65,7 @@ func main() {
 		AddItem(frame, 1, 0, 1, 3, 0, 0, true).
 		AddItem(newPrimitive("Footer"), 2, 0, 1, 3, 0, 0, false)
 
-	if err := app.SetRoot(grid, true).SetFocus(tableList).Run(); err != nil {
+	if err := app.SetRoot(grid, true).SetFocus(schemaList).Run(); err != nil {
 		panic(err)
 	}
 }
