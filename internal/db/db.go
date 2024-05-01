@@ -8,7 +8,7 @@ import (
 	_ "github.com/lib/pq"
 )
 
-type config struct {
+type Config struct {
 	Host     string `toml:"host"`
 	Port     int    `toml:"port"`
 	User     string `toml:"user"`
@@ -16,8 +16,8 @@ type config struct {
 	DBName   string `toml:"dbname"`
 }
 
-func loadConfig() (config, error) {
-	var config config
+func LoadConfig() (Config, error) {
+	var config Config
 
 	if _, err := toml.DecodeFile("config.toml", &config); err != nil {
 		return config, err
@@ -80,7 +80,7 @@ func ExecuteQuery(query string) ([][]string, []string, error) {
 }
 
 func connectToDb() (*sql.DB, error) {
-	config, err := loadConfig()
+	config, err := LoadConfig()
 
 	if err != nil {
 		return nil, err

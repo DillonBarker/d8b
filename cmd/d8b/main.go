@@ -1,7 +1,9 @@
 package main
 
 import (
+	"github.com/DillonBarker/d8b/internal/db"
 	"github.com/DillonBarker/d8b/internal/table"
+	"github.com/DillonBarker/d8b/internal/ui"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 )
@@ -11,6 +13,14 @@ func main() {
 		return tview.NewTextView().
 			SetText(text)
 	}
+
+	config, err := db.LoadConfig()
+
+	if err != nil {
+		panic(err)
+	}
+
+	header := ui.Header(config)
 
 	app := tview.NewApplication()
 
@@ -59,9 +69,9 @@ func main() {
 	})
 
 	grid := tview.NewGrid().
-		SetRows(1, 0, 1).
+		SetRows(4, 0, 1).
 		SetColumns(0, 1, 0).
-		AddItem(newPrimitive("Header"), 0, 0, 1, 3, 0, 0, false).
+		AddItem(header, 0, 0, 1, 3, 0, 0, false).
 		AddItem(frame, 1, 0, 1, 3, 0, 0, true).
 		AddItem(newPrimitive("Footer"), 2, 0, 1, 3, 0, 0, false)
 

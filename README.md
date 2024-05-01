@@ -24,8 +24,9 @@ dbname = "postgres"
 ## TODO
 
 - [x] Create executable
-- [ ] Deal with tenanted tables
-- [ ] Edit tables
+- [x] Deal with tenanted tables
+- [ ] Table/list searching and filtering
 - [ ] Multiple configs (for multiple databases)
 - [ ] Proper errors for bad queries
-- [ ] Add tests? + other go project files
+- [ ] Edit tables
+- [ ] Add tests

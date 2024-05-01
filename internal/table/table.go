@@ -30,17 +30,15 @@ func GetSchemas() *tview.List {
 		panic(err)
 	}
 
-	schemaList.AddItem(strings.ToUpper(headers[0]), "", 0, nil).
-		SetMainTextColor(tableHeaderColour)
-
 	for _, tableName := range rows {
 		schemaList.AddItem(tableName[0], "", 0, nil).
-			SetMainTextColor(baseTableColour)
+			SetMainTextColor(tview.Styles.SecondaryTextColor)
 	}
 
 	schemaList.
 		ShowSecondaryText(false).
-		SetTitle(fmt.Sprintf(" schemas [%d] ", len(rows)))
+		SetTitle(fmt.Sprintf(" schemas [%d] ", len(rows))).
+		SetTitleColor(tview.Styles.PrimaryTextColor)
 
 	return schemaList
 }
@@ -59,7 +57,7 @@ func GetTable(schemaName string, tableName string) *tview.Table {
 	for headerIndex, header := range headers {
 		table.SetCell(0, headerIndex,
 			tview.NewTableCell(strings.ToUpper(header)).
-				SetTextColor(tableHeaderColour).
+				SetTextColor(tview.Styles.PrimaryTextColor).
 				SetAlign(tview.AlignLeft))
 	}
 
@@ -67,16 +65,15 @@ func GetTable(schemaName string, tableName string) *tview.Table {
 		for itemIndex, item := range row {
 			table.SetCell(rowIndex+1, itemIndex,
 				tview.NewTableCell(item).
-					SetTextColor(baseTableColour).
+					SetTextColor(tview.Styles.SecondaryTextColor).
 					SetAlign(tview.AlignLeft))
 		}
 	}
 
 	table.
-		SetTitle(fmt.Sprintf(" %s.%s [%d] ", schemaName, tableName, len(rowData))).
-		SetTitleColor(baseTableColour).
+		SetTitle(fmt.Sprintf(" table(%s.%s) [%d] ", schemaName, tableName, len(rowData))).
+		SetTitleColor(tview.Styles.PrimaryTextColor).
 		SetBorder(true).
-		SetBorderStyle(tcell.StyleDefault).
 		SetBorderColor(baseTableColour).
 		SetBorderPadding(0, 0, 1, 1)
 
@@ -86,7 +83,7 @@ func GetTable(schemaName string, tableName string) *tview.Table {
 func GetTables(schemaName string) *tview.List {
 	tableList := tview.NewList()
 	tableList.SetBorder(true).
-		SetTitleColor(baseTableColour).
+		SetTitleColor(tview.Styles.PrimaryTextColor).
 		SetBorderColor(baseTableColour).
 		SetBorderPadding(0, 0, 1, 1)
 
@@ -96,17 +93,14 @@ func GetTables(schemaName string) *tview.List {
 		panic(err)
 	}
 
-	tableList.AddItem(strings.ToUpper(headers[0]), "", 0, nil).
-		SetMainTextColor(tableHeaderColour)
-
 	for _, tableName := range rows {
 		tableList.AddItem(tableName[0], "", 0, nil).
-			SetMainTextColor(baseTableColour)
+			SetMainTextColor(tview.Styles.SecondaryTextColor)
 	}
 
 	tableList.
 		ShowSecondaryText(false).
-		SetTitle(fmt.Sprintf(" %s [%d] ", schemaName, len(rows)))
+		SetTitle(fmt.Sprintf(" schema(%s) [%d] ", schemaName, len(rows)))
 
 	return tableList
 }
