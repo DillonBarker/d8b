@@ -10,21 +10,30 @@ import (
 )
 
 const (
-	tableHeaderColour = tcell.ColorWhite
-	baseTableColour   = tcell.ColorMediumSpringGreen
-	tableQuery        = "SELECT * FROM %s.%s"
-	schemasQuery      = "SELECT schema_name FROM information_schema.schemata"
-	tablesQuery       = "SELECT table_name FROM information_schema.tables WHERE table_schema = '%s';"
+	tableHeaderColour    = tcell.ColorWhite
+	baseTableColour      = tcell.ColorMediumSpringGreen
+	tableQuery           = "SELECT * FROM %s.%s"
+	schemasQuery         = "SELECT schema_name FROM information_schema.schemata"
+	schemasQueryFiltered = "SELECT schema_name FROM information_schema.schemata WHERE schema_name LIKE '%%%s%%'"
+	tablesQuery          = "SELECT table_name FROM information_schema.tables WHERE table_schema = '%s';"
+	// tablesQueryFiltered  = "SELECT table_name FROM information_schema.tables WHERE table_schema = '%s' AND table_name LIKE '%%%s%%';"
 )
 
-func GetSchemas() *tview.List {
+func GetSchemas(filter *string) *tview.List {
 	schemaList := tview.NewList()
 	schemaList.SetBorder(true).
 		SetTitleColor(baseTableColour).
 		SetBorderColor(baseTableColour).
 		SetBorderPadding(0, 0, 1, 1)
 
-	rows, headers, err := db.ExecuteQuery(schemasQuery)
+	var query string
+	if filter != nil {
+		query = fmt.Sprintf(schemasQueryFiltered, *filter)
+	} else {
+		query = schemasQuery
+	}
+
+	rows, headers, err := db.ExecuteQuery(query)
 
 	if headers == nil {
 		panic(err)

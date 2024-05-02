@@ -22,5 +22,7 @@ func Header(config db.Config) *tview.Flex {
 		AddItem(labels, 0, 1, false).
 		AddItem(values, 0, 10, false)
 
+	header.SetBorderPadding(0, 0, 1, 1)
+
 	return header
 }
