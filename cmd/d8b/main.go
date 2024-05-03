@@ -30,7 +30,7 @@ func main() {
 
 	app := tview.NewApplication()
 
-	schemaListRows, _, err := table.GetSchemas(nil)
+	schemaListRows, _, err := table.GetSchemas()
 
 	if err != nil {
 		panic(err)
@@ -60,6 +60,7 @@ func main() {
 
 	app.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 		if event.Rune() == '/' {
+
 			app.SetFocus(input)
 			input.SetLabel("> ")
 			return nil

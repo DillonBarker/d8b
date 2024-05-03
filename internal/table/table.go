@@ -10,30 +10,15 @@ import (
 )
 
 const (
-	tableHeaderColour    = tcell.ColorWhite
-	baseTableColour      = tcell.ColorMediumSpringGreen
-	tableQuery           = "SELECT * FROM %s.%s"
-	schemasQuery         = "SELECT schema_name FROM information_schema.schemata"
-	schemasQueryFiltered = "SELECT schema_name FROM information_schema.schemata WHERE schema_name LIKE '%%%s%%'"
-	tablesQuery          = "SELECT table_name FROM information_schema.tables WHERE table_schema = '%s';"
-	// tablesQueryFiltered  = "SELECT table_name FROM information_schema.tables WHERE table_schema = '%s' AND table_name LIKE '%%%s%%';"
+	tableHeaderColour = tcell.ColorWhite
+	baseTableColour   = tcell.ColorMediumSpringGreen
+	tableQuery        = "SELECT * FROM %s.%s"
+	schemasQuery      = "SELECT schema_name FROM information_schema.schemata"
+	tablesQuery       = "SELECT table_name FROM information_schema.tables WHERE table_schema = '%s';"
 )
 
-func GetSchemas(filter *string) ([]string, []string, error) {
-	schemaList := tview.NewList()
-	schemaList.SetBorder(true).
-		SetTitleColor(baseTableColour).
-		SetBorderColor(baseTableColour).
-		SetBorderPadding(0, 0, 1, 1)
-
-	var query string
-	if filter != nil {
-		query = fmt.Sprintf(schemasQueryFiltered, *filter)
-	} else {
-		query = schemasQuery
-	}
-
-	rows, headers, err := db.ExecuteQuery(query)
+func GetSchemas() ([]string, []string, error) {
+	rows, headers, err := db.ExecuteQuery(schemasQuery)
 
 	if headers == nil {
 		panic(err)
@@ -45,18 +30,6 @@ func GetSchemas(filter *string) ([]string, []string, error) {
 	}
 
 	return flattened, headers, err
-
-	// for _, tableName := range rows {
-	// 	schemaList.AddItem(tableName[0], "", 0, nil).
-	// 		SetMainTextColor(tview.Styles.SecondaryTextColor)
-	// }
-
-	// schemaList.
-	// 	ShowSecondaryText(false).
-	// 	SetTitle(fmt.Sprintf(" schemas [%d] ", len(rows))).
-	// 	SetTitleColor(tview.Styles.PrimaryTextColor)
-
-	// return schemaList
 }
 
 func GetTable(schemaName string, tableName string) *tview.Table {
@@ -97,12 +70,6 @@ func GetTable(schemaName string, tableName string) *tview.Table {
 }
 
 func GetTables(schemaName string) ([]string, error) {
-	tableList := tview.NewList()
-	tableList.SetBorder(true).
-		SetTitleColor(tview.Styles.PrimaryTextColor).
-		SetBorderColor(baseTableColour).
-		SetBorderPadding(0, 0, 1, 1)
-
 	rows, headers, err := db.ExecuteQuery(fmt.Sprintf(tablesQuery, schemaName))
 
 	if headers == nil {
@@ -115,14 +82,4 @@ func GetTables(schemaName string) ([]string, error) {
 	}
 
 	return flattened, err
-	// for _, tableName := range rows {
-	// 	tableList.AddItem(tableName[0], "", 0, nil).
-	// 		SetMainTextColor(tview.Styles.SecondaryTextColor)
-	// }
-
-	// tableList.
-	// 	ShowSecondaryText(false).
-	// 	SetTitle(fmt.Sprintf(" schema(%s) [%d] ", schemaName, len(rows)))
-
-	// return tableList
 }
