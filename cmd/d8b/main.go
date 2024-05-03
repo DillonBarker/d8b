@@ -1,12 +1,16 @@
 package main
 
 import (
+	"fmt"
+
 	"github.com/DillonBarker/d8b/internal/db"
 	"github.com/DillonBarker/d8b/internal/table"
 	"github.com/DillonBarker/d8b/internal/ui"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 )
+
+const baseTableColour = tcell.ColorMediumSpringGreen
 
 func main() {
 	newPrimitive := func(text string) tview.Primitive {
@@ -24,7 +28,28 @@ func main() {
 
 	app := tview.NewApplication()
 
-	schemaList := table.GetSchemas(nil)
+	schemaListRows, _, err := table.GetSchemas(nil)
+
+	if err != nil {
+		panic(err)
+	}
+
+	schemaList := tview.NewList()
+
+	for _, tableName := range schemaListRows {
+		schemaList.AddItem(tableName[0], "", 0, nil).
+			SetMainTextColor(tview.Styles.SecondaryTextColor)
+	}
+
+	schemaList.
+		SetBorder(true).
+		SetTitleColor(baseTableColour).
+		SetBorderColor(baseTableColour).
+		SetBorderPadding(0, 0, 1, 1)
+	schemaList.
+		ShowSecondaryText(false).
+		SetTitle(fmt.Sprintf(" schemas [%d] ", len(schemaListRows))).
+		SetTitleColor(tview.Styles.PrimaryTextColor)
 
 	frame := tview.NewFrame(schemaList)
 
@@ -58,6 +83,8 @@ func main() {
 
 		frame.SetPrimitive(tableList)
 
+		app.SetFocus(frame)
+
 		tableList.SetSelectedFunc(func(index int, tableName, secondaryText string, shortcut rune) {
 			table := table.GetTable(schemaName, tableName)
 
@@ -73,6 +100,7 @@ func main() {
 
 		tableList.SetDoneFunc(func() {
 			frame.SetPrimitive(schemaList)
+			app.SetFocus(frame)
 		})
 	})
 
@@ -88,3 +116,22 @@ func main() {
 		panic(err)
 	}
 }
+
+// func filterData(data []string, filter string) []string {
+// 	filteredData := make([]string, 0)
+// 	filter = strings.ToLower(filter)
+// 	for _, item := range data {
+// 		if strings.Contains(strings.ToLower(item), filter) {
+// 			filteredData = append(filteredData, item)
+// 		}
+// 	}
+// 	return filteredData
+// }
+
+// func updateList(list *tview.List, data []string, filter string) {
+// 	list.Clear()
+// 	filteredData := filterData(data, filter)
+// 	for _, item := range filteredData {
+// 		list.AddItem(item, "", 0, nil)
+// 	}
+// }
