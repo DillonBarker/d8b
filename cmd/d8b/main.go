@@ -29,8 +29,6 @@ func main() {
 	frame := tview.NewFrame(schemaList)
 
 	schemaList.SetSelectedFunc(func(index int, schemaName, secondaryText string, shortcut rune) {
-		frame.Clear()
-
 		tableList := table.GetTables(schemaName)
 
 		frame.SetPrimitive(tableList)
@@ -38,20 +36,17 @@ func main() {
 		tableList.SetSelectedFunc(func(index int, tableName, secondaryText string, shortcut rune) {
 			table := table.GetTable(schemaName, tableName)
 
-			frame.Clear()
 			frame.SetPrimitive(table)
 
 			table.SetDoneFunc(func(key tcell.Key) {
 				switch key {
 				case tcell.KeyEscape:
-					frame.Clear()
 					frame.SetPrimitive(tableList)
 				}
 			})
 		})
 
 		tableList.SetDoneFunc(func() {
-			frame.Clear()
 			frame.SetPrimitive(schemaList)
 		})
 
