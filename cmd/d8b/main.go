@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/DillonBarker/d8b/internal/db"
 	"github.com/DillonBarker/d8b/internal/table"
@@ -37,7 +38,7 @@ func main() {
 	schemaList := tview.NewList()
 
 	for _, tableName := range schemaListRows {
-		schemaList.AddItem(tableName[0], "", 0, nil).
+		schemaList.AddItem(tableName, "", 0, nil).
 			SetMainTextColor(tview.Styles.SecondaryTextColor)
 	}
 
@@ -64,6 +65,7 @@ func main() {
 		if event.Key() == tcell.KeyEscape {
 			input.SetText("")
 			input.SetLabel("")
+			updateList(schemaList, schemaListRows, nil)
 		}
 		return event
 	})
@@ -71,9 +73,12 @@ func main() {
 	input.SetDoneFunc(func(key tcell.Key) {
 		if key == tcell.KeyEscape {
 			input.SetText("")
+			updateList(schemaList, schemaListRows, nil)
 			app.SetFocus(frame)
 		}
 		if key == tcell.KeyEnter {
+			filterText := input.GetText()
+			updateList(schemaList, schemaListRows, &filterText)
 			app.SetFocus(frame)
 		}
 	})
@@ -117,21 +122,29 @@ func main() {
 	}
 }
 
-// func filterData(data []string, filter string) []string {
-// 	filteredData := make([]string, 0)
-// 	filter = strings.ToLower(filter)
-// 	for _, item := range data {
-// 		if strings.Contains(strings.ToLower(item), filter) {
-// 			filteredData = append(filteredData, item)
-// 		}
-// 	}
-// 	return filteredData
-// }
+func filterData(data []string, filter string) []string {
+	filteredData := make([]string, 0)
+	filter = strings.ToLower(filter)
+	for _, item := range data {
+		if strings.Contains(strings.ToLower(item), filter) {
+			filteredData = append(filteredData, item)
+		}
+	}
+	return filteredData
+}
 
-// func updateList(list *tview.List, data []string, filter string) {
-// 	list.Clear()
-// 	filteredData := filterData(data, filter)
-// 	for _, item := range filteredData {
-// 		list.AddItem(item, "", 0, nil)
-// 	}
-// }
+func updateList(list *tview.List, data []string, filter *string) {
+	list.Clear()
+	var d []string
+
+	if filter != nil {
+		f := *filter
+		d = filterData(data, f)
+	} else {
+		d = data
+	}
+
+	for _, item := range d {
+		list.AddItem(item, "", 0, nil)
+	}
+}

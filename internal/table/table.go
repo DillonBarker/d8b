@@ -19,7 +19,7 @@ const (
 	// tablesQueryFiltered  = "SELECT table_name FROM information_schema.tables WHERE table_schema = '%s' AND table_name LIKE '%%%s%%';"
 )
 
-func GetSchemas(filter *string) ([][]string, []string, error) {
+func GetSchemas(filter *string) ([]string, []string, error) {
 	schemaList := tview.NewList()
 	schemaList.SetBorder(true).
 		SetTitleColor(baseTableColour).
@@ -39,7 +39,12 @@ func GetSchemas(filter *string) ([][]string, []string, error) {
 		panic(err)
 	}
 
-	return rows, headers, err
+	var flattened []string
+	for _, row := range rows {
+		flattened = append(flattened, row...)
+	}
+
+	return flattened, headers, err
 
 	// for _, tableName := range rows {
 	// 	schemaList.AddItem(tableName[0], "", 0, nil).
