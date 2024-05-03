@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 
 	"github.com/DillonBarker/d8b/internal/db"
@@ -36,6 +37,7 @@ func main() {
 	}
 
 	schemaList := tview.NewList()
+	tableList := tview.NewList()
 
 	for _, tableName := range schemaListRows {
 		schemaList.AddItem(tableName, "", 0, nil).
@@ -77,16 +79,58 @@ func main() {
 			app.SetFocus(frame)
 		}
 		if key == tcell.KeyEnter {
-			filterText := input.GetText()
-			updateList(schemaList, schemaListRows, &filterText)
 			app.SetFocus(frame)
+			if app.GetFocus() == schemaList {
+				filterText := input.GetText()
+				updateList(schemaList, schemaListRows, &filterText)
+			}
+			if app.GetFocus() == tableList {
+				filterText := input.GetText()
+				title := tableList.GetTitle()
+				re := regexp.MustCompile(`\(([^)]+)\)`)
+				matches := re.FindStringSubmatch(title)
+
+				var schemaName string
+				if len(matches) > 1 {
+					schemaName = matches[1]
+				}
+
+				tableListRows, err := table.GetTables(schemaName)
+
+				if err != nil {
+					panic(err)
+				}
+
+				updateList(tableList, tableListRows, &filterText)
+			}
 		}
 	})
 
 	schemaList.SetSelectedFunc(func(index int, schemaName, secondaryText string, shortcut rune) {
-		tableList := table.GetTables(schemaName)
+		tableListRows, err := table.GetTables(schemaName)
+
+		if err != nil {
+			panic(err)
+		}
+
+		for _, tableName := range tableListRows {
+			tableList.AddItem(tableName, "", 0, nil).
+				SetMainTextColor(tview.Styles.SecondaryTextColor)
+		}
+
+		tableList.
+			ShowSecondaryText(false).
+			SetTitle(fmt.Sprintf(" schema(%s) [%d] ", schemaName, len(tableListRows)))
+
+		tableList.SetBorder(true).
+			SetTitleColor(tview.Styles.PrimaryTextColor).
+			SetBorderColor(baseTableColour).
+			SetBorderPadding(0, 0, 1, 1)
 
 		frame.SetPrimitive(tableList)
+
+		input.SetText("")
+		input.SetLabel("")
 
 		app.SetFocus(frame)
 
@@ -104,6 +148,7 @@ func main() {
 		})
 
 		tableList.SetDoneFunc(func() {
+			tableList.Clear()
 			frame.SetPrimitive(schemaList)
 			app.SetFocus(frame)
 		})

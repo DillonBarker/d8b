@@ -96,7 +96,7 @@ func GetTable(schemaName string, tableName string) *tview.Table {
 	return table
 }
 
-func GetTables(schemaName string) *tview.List {
+func GetTables(schemaName string) ([]string, error) {
 	tableList := tview.NewList()
 	tableList.SetBorder(true).
 		SetTitleColor(tview.Styles.PrimaryTextColor).
@@ -109,14 +109,20 @@ func GetTables(schemaName string) *tview.List {
 		panic(err)
 	}
 
-	for _, tableName := range rows {
-		tableList.AddItem(tableName[0], "", 0, nil).
-			SetMainTextColor(tview.Styles.SecondaryTextColor)
+	var flattened []string
+	for _, row := range rows {
+		flattened = append(flattened, row...)
 	}
 
-	tableList.
-		ShowSecondaryText(false).
-		SetTitle(fmt.Sprintf(" schema(%s) [%d] ", schemaName, len(rows)))
+	return flattened, err
+	// for _, tableName := range rows {
+	// 	tableList.AddItem(tableName[0], "", 0, nil).
+	// 		SetMainTextColor(tview.Styles.SecondaryTextColor)
+	// }
 
-	return tableList
+	// tableList.
+	// 	ShowSecondaryText(false).
+	// 	SetTitle(fmt.Sprintf(" schema(%s) [%d] ", schemaName, len(rows)))
+
+	// return tableList
 }
