@@ -8,8 +8,7 @@ import (
 func Input() *tview.InputField {
 	inputField := tview.NewInputField()
 
-	inputField.
-		SetBorder(true)
+	inputField.SetBorder(true)
 
 	inputField.SetFieldTextColor(tview.Styles.PrimaryTextColor)
 	inputField.SetPlaceholderTextColor(tview.Styles.PrimaryTextColor)
