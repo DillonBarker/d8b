@@ -156,7 +156,7 @@ func main() {
 	})
 
 	grid := tview.NewGrid().
-		SetRows(4, 3, 0, 1).
+		SetRows(6, 3, 0, 1).
 		SetColumns(0, 1, 0).
 		AddItem(header, 0, 0, 1, 3, 0, 0, false).
 		AddItem(input, 1, 0, 1, 3, 0, 0, true).

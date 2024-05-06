@@ -18,9 +18,22 @@ func Header(config db.Config) *tview.Flex {
 	values.SetText(fmt.Sprintf("%s\n%d\n%s\n%s", config.Host, config.Port, config.DBName, config.User)).
 		SetTextAlign(tview.AlignLeft)
 
+	asciiArt := `
+      # ### #   
+    ### # # ### 
+    # # ### # # 
+    ### # # ### 
+        ###
+    `
+
+	asciiTextView := tview.NewTextView().
+		SetText(asciiArt).
+		SetTextColor(tview.Styles.SecondaryTextColor)
+
 	header := tview.NewFlex().
 		AddItem(labels, 0, 1, false).
-		AddItem(values, 0, 10, false)
+		AddItem(values, 0, 5, false).
+		AddItem(asciiTextView, 0, 1, false)
 
 	header.SetBorderPadding(0, 0, 1, 1)
 

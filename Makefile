@@ -1,6 +1,6 @@
 EXE = d8b
 PACKAGE = github.com/DillonBarker/d8b/cmd/d8b
-COMMAND_PACKAGE = github.com/DillonBarker/d8b/internal/main.go
+COMMAND_PACKAGE = github.com/DillonBarker/d8b/cmd/d8b/main.go
 GO_VERSION = $(shell go version | cut -d ' ' -f3)
 COMMIT_HASH	= $(shell git rev-parse HEAD)
 
