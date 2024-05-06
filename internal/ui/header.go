@@ -22,8 +22,8 @@ func Header(config db.Config) *tview.Flex {
       # ### #   
     ### # # ### 
     # # ### # # 
-    ### # # ### 
-        ###
+    ### # # ###  
+		###
     `
 
 	asciiTextView := tview.NewTextView().
@@ -33,9 +33,9 @@ func Header(config db.Config) *tview.Flex {
 	header := tview.NewFlex().
 		AddItem(labels, 0, 1, false).
 		AddItem(values, 0, 5, false).
-		AddItem(asciiTextView, 0, 1, false)
+		AddItem(asciiTextView, 18, 1, false)
 
-	header.SetBorderPadding(0, 0, 1, 1)
+	header.SetBorderPadding(0, 0, 0, 0)
 
 	return header
 }
