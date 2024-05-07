@@ -21,12 +21,8 @@ dbname = "postgres"
 - Run the `Makefile`, which will add d8b to your GOPATH
 - use `d8b` from anywhere!
 
-## TODO
+## TODO for mvp
 
-- [x] Create executable
-- [x] Deal with tenanted tables
-- [ ] Table/list searching and filtering
-- [ ] Multiple configs (for multiple databases)
+- [ ] Run custom commands, queries with :table, :schema, :query
 - [ ] Proper errors for bad queries
-- [ ] Edit tables
 - [ ] Add tests
